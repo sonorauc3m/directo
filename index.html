@@ -19,7 +19,10 @@ body{
   font-family: Helvetica, Arial, sans-serif;
   background:radial-gradient(circle at top,#be1622 0%,#3a0307 55%,#000 100%);
   color:#fff;
-  height:100vh;display:flex;justify-content:center;align-items:center;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
   text-align:center;
   overflow:hidden;
 }
@@ -31,8 +34,18 @@ body{
 }
 
 /* TITULARES */
-h1{font-size:3.2rem;margin-bottom:4px;font-weight:800;letter-spacing:3px;}
-h2{font-size:1.1rem;color:#d9d9d9;margin-bottom:22px;font-weight:300;}
+h1{
+  font-size:3.2rem;
+  margin-bottom:4px;
+  font-weight:800;
+  letter-spacing:3px;
+}
+h2{
+  font-size:1.1rem;
+  color:#d9d9d9;
+  margin-bottom:22px;
+  font-weight:300;
+}
 
 /* TARJETA DIRECTO */
 .card{
@@ -64,20 +77,30 @@ h2{font-size:1.1rem;color:#d9d9d9;margin-bottom:22px;font-weight:300;}
 }
 
 /* SI NO ESTÁ EN DIRECTO */
-.empty{opacity:.7;font-size:1.1rem;margin-bottom:25px}
+.empty{
+  opacity:.7;
+  font-size:1.1rem;
+  margin-bottom:25px;
+}
 
 /* === QR === */
 .qr-box{
   position:fixed;
   right:28px;
   bottom:28px;
-  width:115px;
-  height:115px;
+  width:125px;
+  height:125px;
   z-index:999;
+  background:rgba(0,0,0,0.55);
+  border-radius:20px;
+  padding:8px;
+  box-shadow:0 12px 28px rgba(0,0,0,0.7);
 }
 .qr-box img{
   width:100%;
-  filter:drop-shadow(0 0 6px rgba(255,255,255,.45));
+  height:100%;
+  display:block;
+  border-radius:12px;
 }
 
 /* === MOBILE === */
@@ -86,7 +109,12 @@ h2{font-size:1.1rem;color:#d9d9d9;margin-bottom:22px;font-weight:300;}
   .item{font-size:1.65rem;}
   .sub{font-size:1.05rem;}
   .card{padding:22px;}
-  .qr-box{width:90px;height:90px;right:18px;bottom:18px;}
+  .qr-box{
+    width:95px;
+    height:95px;
+    right:16px;
+    bottom:16px;
+  }
 }
 </style>
 </head>
@@ -109,11 +137,14 @@ h2{font-size:1.1rem;color:#d9d9d9;margin-bottom:22px;font-weight:300;}
 
 <!-- QR >>> página oficial programación -->
 <div class="qr-box">
-  <a href="https://sonorauc3m.github.io/programacion/" target="_blank">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=FFFFFF&bg=00000000&data=https://sonorauc3m.github.io/programacion/" alt="QR Sonora">
+  <a href="https://sonorauc3m.github.io/programacion/" target="_blank" rel="noopener">
+    <!-- QR blanco sobre rojo oscuro, sin marco gordo blanco -->
+    <img
+      src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&color=FFFFFF&bgcolor=190306&data=https%3A%2F%2Fsonorauc3m.github.io%2Fprogramacion%2F"
+      alt="QR Sonora – Programación"
+    />
   </a>
 </div>
-
 
 <script>
 /* Google Sheet */
@@ -122,41 +153,110 @@ const SHEET="Directo";
 
 async function fetchSheet(){
   try{
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET}`;
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET)}`;
     const raw=await fetch(url).then(r=>r.text());
     const json=JSON.parse(raw.substr(47).slice(0,-2));
     return json.table.rows.map(r=>(r.c||[]).map(c=>c?.v||""));
-  }catch(e){console.error(e);return [];}
+  }catch(e){
+    console.error(e);
+    return [];
+  }
 }
 
-function parse(t){
-  const m=t.match(/\d{1,2}:\d{2}/g);
+function parseRange(text){
+  if(!text) return null;
+  const m=text.match(/\d{1,2}:\d{2}/g);
   if(!m) return null;
-  const [a,b]=m;const[sH,sM]=a.split(":").map(Number);
-  let[eH,eM]=b?b.split(":").map(Number):[sH,sM+60];
-  return{ini:sH*60+sM,fin:eH*60+eM,label:t};
+  const[startStr,endStr]=m;
+  const[sh,sm]=startStr.split(":").map(Number);
+  let eh,em;
+  if(endStr){
+    [eh,em]=endStr.split(":").map(Number);
+  }else{
+    const total=sh*60+sm+60;
+    eh=Math.floor(total/60);
+    em=total%60;
+  }
+  return{
+    ini:sh*60+sm,
+    fin:eh*60+em,
+    label:text
+  };
 }
 
 async function update(){
-  const rows=await fetchSheet(); rows.shift();
-  const data=rows.map(([d,h,p])=>({d:d?.toLowerCase(),p, ...parse(h)}))
-                .filter(x=>x.ini);
+  const rows=await fetchSheet();
+  if(!rows.length){
+    document.getElementById("now").textContent="No hay datos de programación";
+    document.getElementById("next").textContent="–";
+    return;
+  }
 
-  const n=new Date(),min=n.getHours()*60+n.getMinutes();
-  const today=data.filter(x=>x.d.includes("martes")||x.d.includes("jueves"));
-  
-  let now= today.find(x=>min>=x.ini && min<x.fin);
-  let next= today.find(x=>x.ini>min);
+  rows.shift(); // encabezados
+  const slots=rows
+    .map(([dia,hora,prog])=>{
+      const t=parseRange(hora||"");
+      if(!dia||!prog||!t) return null;
+      return{
+        dia:dia.trim(),
+        prog:prog.trim(),
+        ...t
+      };
+    })
+    .filter(Boolean);
 
-  /* mostrar */
-  document.getElementById("now").textContent=now?now.p:"No hay emisión en directo";
-  document.getElementById("next").textContent=next?`${next.label} · ${next.p}`:"Sin más programas";
+  const nowDate=new Date();
+  const minutes=nowDate.getHours()*60+nowDate.getMinutes();
 
-  /* COLOR SI HAY DIRECTO */
-  document.getElementById("liveBox").style.borderColor=now?"#fff":"rgba(255,255,255,.18)";
+  // prioriza hoy, pero permite otros días para el "siguiente"
+  const weekday=nowDate.getDay(); // 0 dom, 1 lun...
+  const todayName=
+    weekday===2 ? "martes" :
+    weekday===4 ? "jueves" : null;
+
+  const todaySlots=todayName
+    ? slots.filter(s=>s.dia.toLowerCase().includes(todayName))
+    : [];
+
+  let nowSlot=null;
+  let nextSlot=null;
+
+  const consider= todaySlots.length ? todaySlots : slots;
+
+  for(const s of consider){
+    if(minutes>=s.ini && minutes<s.fin){
+      nowSlot=s;
+    }else if(minutes<s.ini){
+      if(!nextSlot || s.ini<nextSlot.ini){
+        nextSlot=s;
+      }
+    }
+  }
+
+  const nowEl=document.getElementById("now");
+  const nextEl=document.getElementById("next");
+  const box=document.getElementById("liveBox");
+
+  if(nowSlot){
+    nowEl.classList.remove("empty");
+    nowEl.textContent=nowSlot.prog;
+    box.style.borderColor="#ffffff";
+  }else{
+    nowEl.classList.add("empty");
+    nowEl.textContent="No hay emisión en directo";
+    box.style.borderColor="rgba(255,255,255,.18)";
+  }
+
+  if(nextSlot){
+    nextEl.classList.remove("empty");
+    nextEl.textContent=`${nextSlot.label} · ${nextSlot.prog}`;
+  }else{
+    nextEl.classList.add("empty");
+    nextEl.textContent="Sin más programas";
+  }
 }
 
-/* Run + refresh 20s */
+// primera carga + refresco cada 20s
 update();
 setInterval(update,20000);
 </script>
