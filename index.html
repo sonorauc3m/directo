@@ -108,7 +108,7 @@ body{
 <div class="wrap">
 
   <!-- LOGO -->
-  <img src="sonora_2.1_blanco.png" class="logo">
+  <img src="sonora_2.1_blanco.png" class="logo" alt="Sonora UC3M">
 
   <!-- SUBTÍTULO -->
   <div class="subtitulo">Emisión en directo – Sonora UC3M</div>
@@ -126,56 +126,142 @@ body{
 
 <!-- QR → Programación -->
 <div class="qr-box">
-  <a href="https://sonorauc3m.github.io/programacion/" target="_blank">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&color=FFFFFF&bgcolor=190306&data=https%3A%2F%2Fsonorauc3m.github.io%2Fprogramacion%2F">
+  <a href="https://sonorauc3m.github.io/programacion/" target="_blank" rel="noopener">
+    <img
+      src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&color=FFFFFF&bgcolor=190306&data=https%3A%2F%2Fsonorauc3m.github.io%2Fprogramacion%2F"
+      alt="QR programación Sonora UC3M">
   </a>
 </div>
 
 <script>
-/* Google Sheet Live */
-const SHEET_ID="1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
-const SHEET="Directo";
+  // === CONFIG HOJA GOOGLE ===
+  const SHEET_ID = "1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
+  const SHEET_NAME = "Directo";
 
-async function fetchSheet(){
-  try{
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET}`;
-    const raw=await fetch(url).then(r=>r.text());
-    const json=JSON.parse(raw.substr(47).slice(0,-2));
-    return json.table.rows.map(r=>(r.c||[]).map(c=>c?.v||""));
-  }catch{return[];}
-}
+  const nowEl  = document.getElementById("now");
+  const nextEl = document.getElementById("next");
 
-function parseTime(t){
-  const m=t.match(/\d{1,2}:\d{2}/g); if(!m) return null;
-  const[sh,sm]=m[0].split(":").map(Number);
-  const[eh,em]=m[1]?m[1].split(":").map(Number):[sh,sm+59];
-  return{ini:sh*60+sm,fin:eh*60+em,label:t};
-}
-
-async function update(){
-  let rows=(await fetchSheet()).slice(1);
-  let slots=rows.map(([d,h,p])=>{let t=parseTime(h||"");return(d&&p&&t)?{dia:d,prog:p,...t}:null;}).filter(Boolean);
-
-  const now=new Date(),min=now.getHours()*60+now.getMinutes();
-  const today=["","lunes","martes","miércoles","jueves","viernes","sábado","domingo"][now.getDay()];
-  let daySlots=slots.filter(s=>s.dia.toLowerCase().includes(today));
-  let list=daySlots.length?daySlots:slots;
-  let nowSlot=null,nextSlot=null;
-
-  for(let s of list){
-    if(min>=s.ini&&min<s.fin) nowSlot=s;
-    else if(min<s.ini &&(!nextSlot||s.ini<nextSlot.ini)) nextSlot=s;
+  function gvizUrl(sheetName) {
+    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   }
 
-  nowSlot?(now.textContent=nowSlot.prog,now.classList.remove("empty"))
-          :(now.textContent="No hay emisión en directo",now.classList.add("empty"));
+  async function fetchSheet() {
+    try {
+      const res  = await fetch(gvizUrl(SHEET_NAME));
+      const text = await res.text();
+      const json = JSON.parse(text.substr(47).slice(0, -2)); // recorta wrapper gviz
+      const rows = json.table.rows || [];
+      return rows.map(r => (r.c || []).map(c => c && c.v ? String(c.v) : ""));
+    } catch (e) {
+      console.error("Error cargando hoja:", e);
+      return [];
+    }
+  }
 
-  nextSlot?(next.textContent=`${nextSlot.label} · ${nextSlot.prog}`,next.classList.remove("empty"))
-           :(next.textContent="Sin más programas",next.classList.add("empty"));
-}
+  function parseTimeRange(raw) {
+    if (!raw) return null;
+    const matches = raw.match(/(\d{1,2}):(\d{2})/g);
+    if (!matches || matches.length === 0) return null;
 
-update();
-setInterval(update,20000);
+    const [startStr, endStr] = matches;
+    const [sh, sm] = startStr.split(":").map(Number);
+    let eh, em;
+
+    if (endStr) {
+      [eh, em] = endStr.split(":").map(Number);
+    } else {
+      const total = sh * 60 + sm + 60;
+      eh = Math.floor(total / 60);
+      em = total % 60;
+    }
+
+    return {
+      startMinutes: sh * 60 + sm,
+      endMinutes: eh * 60 + em,
+      label: raw
+    };
+  }
+
+  async function updateLive() {
+    const rows = (await fetchSheet()).slice(1); // quitamos cabecera
+    if (!rows.length) {
+      nowEl.textContent  = "No hay emisión en directo";
+      nextEl.textContent = "Sin más programas";
+      nowEl.classList.add("empty");
+      nextEl.classList.add("empty");
+      return;
+    }
+
+    // Convertimos filas en slots
+    const slots = [];
+    rows.forEach(cols => {
+      const [diaRaw, horaRaw, programa] = cols;
+      if (!diaRaw || !horaRaw || !programa) return;
+      const t = parseTimeRange(horaRaw.trim());
+      if (!t) return;
+      slots.push({
+        dia: diaRaw.trim(),
+        prog: programa.trim(),
+        startMinutes: t.startMinutes,
+        endMinutes: t.endMinutes,
+        label: t.label
+      });
+    });
+
+    if (!slots.length) {
+      nowEl.textContent  = "No hay emisión en directo";
+      nextEl.textContent = "Sin más programas";
+      nowEl.classList.add("empty");
+      nextEl.classList.add("empty");
+      return;
+    }
+
+    const nowDate    = new Date();
+    const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+    const weekday    = nowDate.getDay();
+    const dayNames   = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+    const todayName  = dayNames[weekday];
+
+    const todaysSlots = slots.filter(s =>
+      s.dia.trim().toLowerCase().includes(todayName)
+    );
+
+    const list = todaysSlots.length ? todaysSlots : slots;
+
+    let current = null;
+    let next    = null;
+
+    for (const s of list) {
+      if (nowMinutes >= s.startMinutes && nowMinutes < s.endMinutes) {
+        current = s;
+      } else if (nowMinutes < s.startMinutes) {
+        if (!next || s.startMinutes < next.startMinutes) {
+          next = s;
+        }
+      }
+    }
+
+    // AHORA
+    if (current) {
+      nowEl.textContent = current.prog;
+      nowEl.classList.remove("empty");
+    } else {
+      nowEl.textContent = "No hay emisión en directo";
+      nowEl.classList.add("empty");
+    }
+
+    // SIGUIENTE
+    if (next) {
+      nextEl.textContent = `${next.label} · ${next.prog}`;
+      nextEl.classList.remove("empty");
+    } else {
+      nextEl.textContent = "Sin más programas";
+      nextEl.classList.add("empty");
+    }
+  }
+
+  updateLive();
+  setInterval(updateLive, 20000);
 </script>
 
 </body>
