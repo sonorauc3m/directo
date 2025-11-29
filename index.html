@@ -3,124 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sonora UC3M · Live Screen</title>
+<title>Sonora UC3M – Emisión</title>
 
 <style>
-:root {
-  --sonora-red:#be1622;
+:root{
+  --rojo:#be1622;
+  --negro:#050307;
   --text:#fff;
-  --text-soft:#c9c9c9;
+  --soft:#bfbfbf;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
+
+/* === GLOBAL === */
 body{
-  font-family:system-ui,-apple-system,Helvetica,Arial;
-  background:radial-gradient(circle at top,#be1622 0%,#000 85%);
-  color:var(--text);
-  display:flex;justify-content:center;align-items:center;
-  height:100vh;overflow:hidden;text-align:center;padding:20px;
+  margin:0;
+  font-family: Helvetica, Arial, sans-serif;
+  background:radial-gradient(circle at top,#be1622 0%,#3a0307 55%,#000 100%);
+  color:#fff;
+  height:100vh;display:flex;justify-content:center;align-items:center;
+  text-align:center;
+  overflow:hidden;
 }
 
-/*********** CONTENEDOR PRINCIPAL ***********/
-.container{
-  width:100%;max-width:700px;
-  background:rgba(0,0,0,.55);
-  border-radius:20px;padding:32px 28px;
-  backdrop-filter:blur(25px);
+/* CONTENEDOR CENTRAL */
+.wrap{
+  width:90%;
+  max-width:900px;
+}
+
+/* TITULARES */
+h1{font-size:3.2rem;margin-bottom:4px;font-weight:800;letter-spacing:3px;}
+h2{font-size:1.1rem;color:#d9d9d9;margin-bottom:22px;font-weight:300;}
+
+/* TARJETA DIRECTO */
+.card{
+  background:rgba(0,0,0,.35);
   border:1px solid rgba(255,255,255,.18);
+  padding:28px 32px;
+  border-radius:22px;
+  backdrop-filter:blur(18px);
+  transition:.25s;
 }
-.logo{width:260px;margin:0 auto 22px auto;display:block;}
 
-/*********** AHORA / SIGUIENTE ***********/
-.live-label{font-size:.85rem;letter-spacing:.18em;opacity:.9;margin-bottom:6px;}
-.live-title{font-size:2rem;font-weight:700;margin-bottom:4px;}
-.live-time{font-size:1rem;color:var(--text-soft);margin-bottom:14px;}
+/* BLOQUES */
+.label{
+  font-size:.75rem;
+  letter-spacing:4.5px;
+  font-weight:700;
+  opacity:.95;
+  margin-bottom:8px;
+  text-transform:uppercase;
+}
+.item{
+  font-size:1.9rem;
+  font-weight:700;
+  margin-bottom:20px;
+}
+.sub{
+  font-size:1.25rem;
+  opacity:.85;
+}
 
-.progress{margin-top:16px;width:100%;height:5px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden;}
-.bar{height:100%;width:0%;background:#fff;transition:.3s;}
+/* SI NO ESTÁ EN DIRECTO */
+.empty{opacity:.7;font-size:1.1rem;margin-bottom:25px}
 
-.next-box{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.25);}
-.next-title{font-size:1.1rem;font-weight:600;}
-.next-time{color:var(--text-soft);margin-top:4px;font-size:.95rem;}
-
-/*********** QR EN PANTALLA ***********/
+/* === QR === */
 .qr-box{
   position:fixed;
   right:28px;
   bottom:28px;
-  width:120px;
-  height:120px;
-  padding:10px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.3);
-  border-radius:14px;
-  backdrop-filter:blur(10px);
-  display:flex;justify-content:center;align-items:center;
+  width:115px;
+  height:115px;
+  z-index:999;
 }
-.qr-box img{width:100%;filter:drop-shadow(0 0 10px #000);border-radius:6px;}
+.qr-box img{
+  width:100%;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.45));
+}
 
+/* === MOBILE === */
 @media(max-width:800px){
-  .container{max-width:92vw;padding:28px;}
-  .logo{width:220px;}
-  .live-title{font-size:1.65rem;}
-  .qr-box{width:95px;height:95px;right:20px;bottom:20px;}
+  h1{font-size:2.3rem;}
+  .item{font-size:1.65rem;}
+  .sub{font-size:1.05rem;}
+  .card{padding:22px;}
+  .qr-box{width:90px;height:90px;right:18px;bottom:18px;}
 }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-  <img src="sonora_2.1_blanco.png" class="logo">
+<div class="wrap">
 
-  <div class="live-label">AHORA EN DIRECTO</div>
-  <div id="now" class="live-title">Cargando…</div>
-  <div id="nowTime" class="live-time"></div>
+  <h1>SONORA UC3M</h1>
+  <h2>Emisión en directo</h2>
 
-  <div class="progress"><div id="bar" class="bar"></div></div>
+  <div class="card" id="liveBox">
+    <div class="label">Ahora</div>
+    <div id="now" class="item empty">Cargando...</div>
 
-  <div class="next-box">
-    <div class="live-label">SIGUIENTE</div>
-    <div id="next" class="next-title">---</div>
-    <div id="nextTime" class="next-time"></div>
+    <div class="label" style="margin-top:15px;">Siguiente</div>
+    <div id="next" class="sub empty">Cargando...</div>
   </div>
+
 </div>
 
-<!-- QR FIJO EN PANTALLA -->
+<!-- QR >>> página oficial programación -->
 <div class="qr-box">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://sonorauc3m.github.io/programacion/" alt="QR">
+  <a href="https://sonorauc3m.github.io/programacion/" target="_blank">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=FFFFFF&bg=00000000&data=https://sonorauc3m.github.io/programacion/" alt="QR Sonora">
+  </a>
 </div>
+
 
 <script>
-const UPDATE_MS = 20000;
-const SHEET_ID = "1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
-const LIVE_SHEET = "Directo";
+/* Google Sheet */
+const SHEET_ID="1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
+const SHEET="Directo";
 
-function url(s){return`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${s}`;}
-async function get(s){let r=await fetch(url(s));let t=await r.text();let j=JSON.parse(t.substring(47,t.length-2));return j.table.rows.map(r=>r.c.map(c=>c?c.v:""));}
-
-function time(t){
-  let m=t.match(/\d{1,2}:\d{2}/g);if(!m)return null;
-  let[s,e]=m;let[sh,sm]=s.split(":").map(Number);
-  let[eh,em]=e?e.split(":").map(Number):[sh+1,sm];
-  return{sh,sm,eh,em,start:sh*60+sm,end:eh*60+em};
+async function fetchSheet(){
+  try{
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET}`;
+    const raw=await fetch(url).then(r=>r.text());
+    const json=JSON.parse(raw.substr(47).slice(0,-2));
+    return json.table.rows.map(r=>(r.c||[]).map(c=>c?.v||""));
+  }catch(e){console.error(e);return [];}
 }
 
-function update(){
-  get(LIVE_SHEET).then(rows=>{
-    let slots=rows.slice(1).map(r=>{let T=time(r[1]);if(!T)return;return{name:r[2],...T};}).filter(x=>x);
-    let nowM=new Date().getHours()*60+new Date().getMinutes();
-    let cur=slots.find(s=>nowM>=s.start&&nowM<s.end);
-    let next=slots.filter(s=>s.start>nowM)[0];
-
-    now.textContent=cur?cur.name:"No hay emisión";
-    nowTime.textContent=cur?`${cur.sh}:${("0"+cur.sm).slice(-2)} - ${cur.eh}:${("0"+cur.em).slice(-2)}`:"";
-    bar.style.width=cur?((nowM-cur.start)/(cur.end-cur.start))*100+"%":"0%";
-    next.innerHTML=next?next.name:"Nada más hoy";
-    nextTime.innerHTML=next?`${next.sh}:${("0"+next.sm).slice(-2)}`:"";
-  });
+function parse(t){
+  const m=t.match(/\d{1,2}:\d{2}/g);
+  if(!m) return null;
+  const [a,b]=m;const[sH,sM]=a.split(":").map(Number);
+  let[eH,eM]=b?b.split(":").map(Number):[sH,sM+60];
+  return{ini:sH*60+sM,fin:eH*60+eM,label:t};
 }
 
-update();setInterval(update,UPDATE_MS);
+async function update(){
+  const rows=await fetchSheet(); rows.shift();
+  const data=rows.map(([d,h,p])=>({d:d?.toLowerCase(),p, ...parse(h)}))
+                .filter(x=>x.ini);
+
+  const n=new Date(),min=n.getHours()*60+n.getMinutes();
+  const today=data.filter(x=>x.d.includes("martes")||x.d.includes("jueves"));
+  
+  let now= today.find(x=>min>=x.ini && min<x.fin);
+  let next= today.find(x=>x.ini>min);
+
+  /* mostrar */
+  document.getElementById("now").textContent=now?now.p:"No hay emisión en directo";
+  document.getElementById("next").textContent=next?`${next.label} · ${next.p}`:"Sin más programas";
+
+  /* COLOR SI HAY DIRECTO */
+  document.getElementById("liveBox").style.borderColor=now?"#fff":"rgba(255,255,255,.18)";
+}
+
+/* Run + refresh 20s */
+update();
+setInterval(update,20000);
 </script>
 
 </body>
