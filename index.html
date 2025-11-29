@@ -8,18 +8,19 @@
 <style>
 :root {
   --sonora-red:#be1622;
-  --sonora-dark:#1a0004;
   --text:#fff;
   --text-soft:#c9c9c9;
-  --panel:rgba(0,0,0,.38);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
   font-family:system-ui,-apple-system,Helvetica,Arial;
   background:radial-gradient(circle at top,#be1622 0%,#000 85%);
-  color:var(--text);display:flex;justify-content:center;align-items:center;
+  color:var(--text);
+  display:flex;justify-content:center;align-items:center;
   height:100vh;overflow:hidden;text-align:center;padding:20px;
 }
+
+/*********** CONTENEDOR PRINCIPAL ***********/
 .container{
   width:100%;max-width:700px;
   background:rgba(0,0,0,.55);
@@ -27,44 +28,47 @@ body{
   backdrop-filter:blur(25px);
   border:1px solid rgba(255,255,255,.18);
 }
-.logo{
-  width:260px;margin:0 auto 22px auto;display:block;
-}
+.logo{width:260px;margin:0 auto 22px auto;display:block;}
 
-.live-label{
-  font-size:0.85rem;letter-spacing:.18em;
-  opacity:.85;margin-bottom:6px;
-}
-.live-title{
-  font-size:1.9rem;font-weight:700;margin-bottom:4px;
-}
-.live-time{
-  font-size:1rem;color:var(--text-soft);margin-bottom:14px;
-}
-.next-box{
-  margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.18);
-}
+/*********** AHORA / SIGUIENTE ***********/
+.live-label{font-size:.85rem;letter-spacing:.18em;opacity:.9;margin-bottom:6px;}
+.live-title{font-size:2rem;font-weight:700;margin-bottom:4px;}
+.live-time{font-size:1rem;color:var(--text-soft);margin-bottom:14px;}
+
+.progress{margin-top:16px;width:100%;height:5px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden;}
+.bar{height:100%;width:0%;background:#fff;transition:.3s;}
+
+.next-box{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.25);}
 .next-title{font-size:1.1rem;font-weight:600;}
 .next-time{color:var(--text-soft);margin-top:4px;font-size:.95rem;}
 
-.progress{
-  margin-top:16px;width:100%;height:5px;border-radius:99px;
-  background:rgba(255,255,255,.25);overflow:hidden;
+/*********** QR EN PANTALLA ***********/
+.qr-box{
+  position:fixed;
+  right:28px;
+  bottom:28px;
+  width:120px;
+  height:120px;
+  padding:10px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:14px;
+  backdrop-filter:blur(10px);
+  display:flex;justify-content:center;align-items:center;
 }
-.bar{
-  height:100%;width:0%;background:#fff;transition:.3s;
-}
+.qr-box img{width:100%;filter:drop-shadow(0 0 10px #000);border-radius:6px;}
 
-/* Responsive fullscreen auto */
 @media(max-width:800px){
   .container{max-width:92vw;padding:28px;}
   .logo{width:220px;}
   .live-title{font-size:1.65rem;}
+  .qr-box{width:95px;height:95px;right:20px;bottom:20px;}
 }
 </style>
 </head>
 
 <body>
+
 <div class="container">
   <img src="sonora_2.1_blanco.png" class="logo">
 
@@ -81,63 +85,43 @@ body{
   </div>
 </div>
 
-<script>
-/* 🔥 AUTO-UPDATE cada 20 segundos */
-const UPDATE_MS = 20000;
+<!-- QR FIJO EN PANTALLA -->
+<div class="qr-box">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://sonorauc3m.github.io/programacion/" alt="QR">
+</div>
 
-/* TU GOOGLE SHEET */
+<script>
+const UPDATE_MS = 20000;
 const SHEET_ID = "1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
 const LIVE_SHEET = "Directo";
 
-function url(sheet){
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheet}`;
-}
-async function get(sheet){
-  const r=await fetch(url(sheet));const t=await r.text();
-  const json=JSON.parse(t.substring(47,t.length-2));
-  return json.table.rows.map(r=>r.c.map(c=>c?c.v:""));
-}
+function url(s){return`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${s}`;}
+async function get(s){let r=await fetch(url(s));let t=await r.text();let j=JSON.parse(t.substring(47,t.length-2));return j.table.rows.map(r=>r.c.map(c=>c?c.v:""));}
 
 function time(t){
-  if(!t) return null;
-  let h=t.match(/\d{1,2}:\d{2}/g); if(!h) return null;
-  let [s,e]=h; let [sh,sm]=s.split(":").map(Number);
-  let eh,em;
-  if(e){[eh,em]=e.split(":").map(Number);}
-  else {eh=sh+1;em=sm;}
-  return {sh,sm,eh,em,start:sh*60+sm,end:eh*60+em};
+  let m=t.match(/\d{1,2}:\d{2}/g);if(!m)return null;
+  let[s,e]=m;let[sh,sm]=s.split(":").map(Number);
+  let[eh,em]=e?e.split(":").map(Number):[sh+1,sm];
+  return{sh,sm,eh,em,start:sh*60+sm,end:eh*60+em};
 }
 
 function update(){
   get(LIVE_SHEET).then(rows=>{
-    let slots=rows.slice(1).map(r=>{
-      let T=time(r[1]); if(!T) return null;
-      return {day:r[0],name:r[2],...T};
-    }).filter(e=>e);
-
+    let slots=rows.slice(1).map(r=>{let T=time(r[1]);if(!T)return;return{name:r[2],...T};}).filter(x=>x);
     let nowM=new Date().getHours()*60+new Date().getMinutes();
-    let current=slots.find(s=>nowM>=s.start && nowM<s.end);
-    let next=slots.filter(s=>s.start>nowM).sort((a,b)=>a.start-b.start)[0];
+    let cur=slots.find(s=>nowM>=s.start&&nowM<s.end);
+    let next=slots.filter(s=>s.start>nowM)[0];
 
-    document.getElementById("now").textContent=current?current.name:"No hay emisión";
-    document.getElementById("nowTime").textContent=current?
-      `${("0"+current.sh).slice(-2)}:${("0"+current.sm).slice(-2)} - ${("0"+current.eh).slice(-2)}:${("0"+current.em).slice(-2)}`
-      :"";
-
-    if(current){
-      let p=((nowM-current.start)/(current.end-current.start))*100;
-      document.getElementById("bar").style.width=p+"%";
-    } else {document.getElementById("bar").style.width="0%";}
-
-    document.getElementById("next").textContent=next?next.name:"Nada más hoy";
-    document.getElementById("nextTime").textContent=next?
-      `${("0"+next.sh).slice(-2)}:${("0"+next.sm).slice(-2)}`
-      :"";
+    now.textContent=cur?cur.name:"No hay emisión";
+    nowTime.textContent=cur?`${cur.sh}:${("0"+cur.sm).slice(-2)} - ${cur.eh}:${("0"+cur.em).slice(-2)}`:"";
+    bar.style.width=cur?((nowM-cur.start)/(cur.end-cur.start))*100+"%":"0%";
+    next.innerHTML=next?next.name:"Nada más hoy";
+    nextTime.innerHTML=next?`${next.sh}:${("0"+next.sm).slice(-2)}`:"";
   });
 }
 
-update();
-setInterval(update,UPDATE_MS);
+update();setInterval(update,UPDATE_MS);
 </script>
+
 </body>
 </html>
