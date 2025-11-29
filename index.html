@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sonora UC3M · En directo</title>
+
+  <style>
+    :root {
+      --sonora-red: #be1622;
+      --sonora-red-dark: #8c1019;
+      --sonora-red-darker: #45060a;
+      --bg-deep: #050307;
+      --text-main: #ffffff;
+      --text-soft: #b3b3b3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Helvetica Now Display", "Helvetica Neue", Helvetica,
+        system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(190,22,34,0.9) 0%, transparent 45%),
+        radial-gradient(circle at bottom right, #300309 0%, #050307 55%, #000000 100%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .brand {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .brand-sub {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+
+    .card-live {
+      border-radius: 28px;
+      padding: 24px 28px;
+      background:
+        radial-gradient(circle at top left, rgba(190,22,34,0.5) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(0,0,0,0.96), rgba(0,0,0,0.65));
+      border: 2px solid rgba(190,22,34,0.95);
+      box-shadow:
+        0 0 40px rgba(190,22,34,0.6),
+        0 40px 90px rgba(0,0,0,0.9);
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .card-main-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    .now-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .now-time {
+      font-size: 1rem;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .now-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #00ff7b;
+      box-shadow: 0 0 0 6px rgba(0,255,123,0.25);
+    }
+
+    .now-empty {
+      font-size: 1.1rem;
+      color: var(--text-soft);
+      max-width: 26rem;
+    }
+
+    .location {
+      margin-top: 18px;
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    .location span {
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .progress-wrap {
+      margin-top: 16px;
+      width: 100%;
+      max-width: 360px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #ffffff;
+      border-radius: inherit;
+      transition: width 0.4s ease;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .next-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      opacity: 0.9;
+    }
+
+    .next-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+
+    .next-time {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+    }
+
+    .clock {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+      margin-top: auto;
+    }
+
+    .clock span {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    @media (max-width: 800px) {
+      body {
+        padding: 16px;
+      }
+      .card-live {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 18px 16px;
+        border-radius: 22px;
+      }
+      .now-title {
+        font-size: 1.7rem;
+      }
+      .brand {
+        font-size: 1.4rem;
+        letter-spacing: 0.14em;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .wrapper {
+        max-width: 420px;
+      }
+      .now-title {
+        font-size: 1.5rem;
+      }
+      .now-empty {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="brand">SONORA UC3M</div>
+    <div class="brand-sub">La radio de la Universidad Carlos III de Madrid</div>
+
+    <div class="card-live">
+      <div>
+        <div class="card-main-label">Ahora en Sonora</div>
+        <div id="now-block">
+          <div class="now-empty">
+            Cargando la emisión en directo…
+          </div>
+        </div>
+
+        <div class="progress-wrap" id="progress-wrap" style="display:none;">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="location">
+          <span>Estudio Sonora 15.0.27</span> · Campus de Getafe – UC3M
+        </div>
+      </div>
+
+      <div class="side">
+        <div>
+          <div class="next-label">Siguiente</div>
+          <div id="next-block">
+            <div class="next-time">Cargando programación…</div>
+          </div>
+        </div>
+        <div class="clock">
+          Hora actual · <span id="clock-time">--:--</span> CET
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === CONFIG HOJA DE CÁLCULO ===
+    const SHEET_ID = "1g9f3Ue9GtdaTbpxp3DCXncrNPhjnHPk0m9QTXdfSAxM";
+    const LIVE_SHEET_NAME = "Directo";
+
+    const WEEK_MIN = 7 * 24 * 60;
+
+    const dayMap = {
+      "domingo": 0,
+      "lunes": 1,
+      "martes": 2,
+      "miercoles": 3,
+      "miércoles": 3,
+      "jueves": 4,
+      "viernes": 5,
+      "sabado": 6,
+      "sábado": 6
+    };
+
+    const weekdayNames = [
+      "domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"
+    ];
+
+    function gvizUrl(sheetName) {
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+    }
+
+    async function fetchSheet(sheetName) {
+      const res = await fetch(gvizUrl(sheetName));
+      const text = await res.text();
+      const json = JSON.parse(text.substr(47).slice(0, -2));
+      const rows = json.table.rows || [];
+      return rows.map(r => (r.c || []).map(c => (c && c.v) ? String(c.v) : ""));
+    }
+
+    function parseTimeRange(raw) {
+      if (!raw) return null;
+      const matches = raw.match(/(\d{1,2}):(\d{2})/g);
+      if (!matches || matches.length === 0) return null;
+
+      const [startStr, endStr] = matches;
+      const [sh, sm] = startStr.split(":").map(Number);
+      let eh, em;
+
+      if (endStr) {
+        [eh, em] = endStr.split(":").map(Number);
+      } else {
+        const total = sh * 60 + sm + 60;
+        eh = Math.floor(total / 60);
+        em = total % 60;
+      }
+
+      return {
+        startMinutes: sh * 60 + sm,
+        endMinutes: eh * 60 + em,
+        startLabel: startStr,
+        endLabel: endStr || ""
+      };
+    }
+
+    function findNextAcrossWeek(slots, nowWeekMin) {
+      if (!slots.length) return null;
+      let best = null;
+      let bestDelta = WEEK_MIN + 1;
+
+      for (const s of slots) {
+        const slotMin = s.weekStartMinutes;
+        let delta = slotMin - nowWeekMin;
+        if (delta <= 0) delta += WEEK_MIN;
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          best = s;
+        }
+      }
+      return best;
+    }
+
+    async function loadLive() {
+      const nowBlock = document.getElementById("now-block");
+      const nextBlock = document.getElementById("next-block");
+      const progressWrap = document.getElementById("progress-wrap");
+      const progressBar  = document.getElementById("progress-bar");
+
+      try {
+        const rows = await fetchSheet(LIVE_SHEET_NAME);
+
+        if (!rows.length) {
+          nowBlock.innerHTML = `<div class="now-empty">No hay programación configurada.</div>`;
+          nextBlock.innerHTML = `<div class="next-time">Añade programas en la hoja "Directo".</div>`;
+          progressWrap.style.display = "none";
+          return;
+        }
+
+        const scheduleObjects = [];
+
+        rows.slice(1).forEach(cols => {
+          const [diaRaw, horaRaw, programa] = cols;
+          if (!diaRaw || !horaRaw || !programa) return;
+
+          const diaFull = diaRaw.trim();
+          const dayBase = diaFull.toLowerCase().split(" ")[0];
+          const dayIndex = dayMap[dayBase];
+          if (dayIndex === undefined) return;
+
+          const t = parseTimeRange(horaRaw.trim());
+          if (!t) return;
+
+          const obj = {
+            dia: diaFull,
+            dayBase,
+            dayIndex,
+            horaTexto: horaRaw.trim(),
+            programa: programa.trim(),
+            startMinutes: t.startMinutes,
+            endMinutes: t.endMinutes,
+            weekStartMinutes: dayIndex * 24 * 60 + t.startMinutes
+          };
+
+          scheduleObjects.push(obj);
+        });
+
+        if (!scheduleObjects.length) {
+          nowBlock.innerHTML = `<div class="now-empty">No hay programación válida en la hoja.</div>`;
+          nextBlock.innerHTML = `<div class="next-time">Revisa los datos en Google Sheets.</div>`;
+          progressWrap.style.display = "none";
+          return;
+        }
+
+        const nowDate = new Date();
+        const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+        const weekday = nowDate.getDay(); // 0=Dom
+        const todayBase = weekdayNames[weekday];
+        const nowWeekMin = weekday * 24 * 60 + nowMinutes;
+
+        const todaysSlots = scheduleObjects.filter(s => s.dayBase === todayBase);
+
+        let nowSlot = null;
+        let nextSlotToday = null;
+
+        if (todaysSlots.length) {
+          for (const s of todaysSlots) {
+            if (nowMinutes >= s.startMinutes && nowMinutes < s.endMinutes) {
+              nowSlot = s;
+            } else if (nowMinutes < s.startMinutes) {
+              if (!nextSlotToday || s.startMinutes < nextSlotToday.startMinutes) {
+                nextSlotToday = s;
+              }
+            }
+          }
+        }
+
+        // AHORA
+        if (nowSlot) {
+          nowBlock.innerHTML = `
+            <div class="now-title">${nowSlot.programa}</div>
+            <div class="now-time">
+              <span class="now-dot"></span>
+              <span>${nowSlot.horaTexto} · ${nowSlot.dia.toUpperCase()}</span>
+            </div>
+          `;
+          const total = nowSlot.endMinutes - nowSlot.startMinutes;
+          const elapsed = nowMinutes - nowSlot.startMinutes;
+          const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+          progressBar.style.width = pct + "%";
+          progressWrap.style.display = "block";
+        } else {
+          nowBlock.innerHTML = `
+            <div class="now-empty">
+              No hay ningún programa en directo en este momento.
+            </div>
+          `;
+          progressWrap.style.display = "none";
+        }
+
+        // SIGUIENTE
+        let nextSlot = nextSlotToday;
+        if (!nextSlot) {
+          nextSlot = findNextAcrossWeek(scheduleObjects, nowWeekMin);
+        }
+
+        if (nextSlot) {
+          nextBlock.innerHTML = `
+            <div class="next-title">${nextSlot.programa}</div>
+            <div class="next-time">
+              ${nextSlot.horaTexto} · ${nextSlot.dia.toUpperCase()}
+            </div>
+          `;
+        } else {
+          nextBlock.innerHTML = `
+            <div class="next-time">No hay más programas programados.</div>
+          `;
+        }
+
+      } catch (e) {
+        console.error(e);
+        nowBlock.innerHTML = `<div class="now-empty">Error cargando la emisión en directo.</div>`;
+        nextBlock.innerHTML = `<div class="next-time">Intenta recargar la página.</div>`;
+        progressWrap.style.display = "none";
+      }
+    }
+
+    function updateClock() {
+      const el = document.getElementById("clock-time");
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      el.textContent = `${hh}:${mm}`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadLive();
+      updateClock();
+      // refresca datos cada 60s
+      setInterval(loadLive, 60000);
+      // refresca reloj cada 10s
+      setInterval(updateClock, 10000);
+    });
+  </script>
+</body>
+</html>
