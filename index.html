@@ -40,12 +40,16 @@
       max-width: 900px;
     }
 
+    /* === LOGO EN VEZ DE TEXTO === */
     .brand {
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
+    }
+
+    .brand-logo {
+      max-width: 360px;
+      width: 100%;
+      height: auto;
+      display: block;
     }
 
     .brand-sub {
@@ -184,9 +188,8 @@
       .now-title {
         font-size: 1.7rem;
       }
-      .brand {
-        font-size: 1.4rem;
-        letter-spacing: 0.14em;
+      .brand-logo {
+        max-width: 260px;
       }
     }
 
@@ -205,7 +208,10 @@
 </head>
 <body>
   <div class="wrapper">
-    <div class="brand">SONORA UC3M</div>
+    <div class="brand">
+      <!-- Asegúrate de subir este archivo PNG al mismo directorio -->
+      <img src="sonora_2.1_blanco.png" alt="Sonora UC3M" class="brand-logo" />
+    </div>
     <div class="brand-sub">La radio de la Universidad Carlos III de Madrid</div>
 
     <div class="card-live">
